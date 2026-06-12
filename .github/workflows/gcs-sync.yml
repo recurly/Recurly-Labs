@@ -1,0 +1,38 @@
+name: Sync GCS object to repository
+
+on:
+  repository_dispatch:
+    types: [gcs-object-updated]
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: google-github-actions/auth@v2
+        with:
+          credentials_json: ${{ secrets.GCP_SA_KEY }}
+
+      - uses: google-github-actions/setup-gcloud@v2
+
+      - name: Download from GCS
+        env:
+          BUCKET: ${{ github.event.client_payload.bucket }}
+          OBJECT: ${{ github.event.client_payload.object }}
+        run: |
+          mkdir -p "$(dirname "$OBJECT")"
+          gcloud storage cp "gs://$BUCKET/$OBJECT" "$OBJECT"
+
+      - name: Commit and push
+        env:
+          OBJECT: ${{ github.event.client_payload.object }}
+          BUCKET: ${{ github.event.client_payload.bucket }}
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add "$OBJECT"
+          git diff --staged --quiet || git commit -m "sync: $OBJECT from $BUCKET"
+          git push
