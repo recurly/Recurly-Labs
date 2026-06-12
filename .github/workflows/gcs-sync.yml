@@ -9,20 +9,26 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: write
+      id-token: write
     steps:
       - uses: actions/checkout@v4
 
       - uses: google-github-actions/auth@v2
         with:
-          credentials_json: ${{ secrets.GCP_SA_KEY }}
+          workload_identity_provider: projects/597679076120/locations/global/workloadIdentityPools/github-actions/providers/gh-provider
+          service_account: github-actions@devops-f467c7d5.iam.gserviceaccount.com
 
       - uses: google-github-actions/setup-gcloud@v2
 
-      - name: Download from GCS
+      - name: Validate and download from GCS
         env:
           BUCKET: ${{ github.event.client_payload.bucket }}
           OBJECT: ${{ github.event.client_payload.object }}
         run: |
+          if [[ "$OBJECT" == *..* || "$OBJECT" == /* ]]; then
+            echo "Invalid object path: $OBJECT"
+            exit 1
+          fi
           mkdir -p "$(dirname "$OBJECT")"
           gcloud storage cp "gs://$BUCKET/$OBJECT" "$OBJECT"
 
