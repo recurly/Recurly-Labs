@@ -13,12 +13,10 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - uses: google-github-actions/auth@v2
+      - uses: recurly/pipeline-configs/.github/actions/auth@master
         with:
-          workload_identity_provider: projects/597679076120/locations/global/workloadIdentityPools/github-actions/providers/gh-provider
-          service_account: github-actions@devops-f467c7d5.iam.gserviceaccount.com
-
-      - uses: google-github-actions/setup-gcloud@v2
+          env: prod
+          setup_gcloud: true
 
       - name: Validate and download from GCS
         env:
